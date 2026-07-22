@@ -428,7 +428,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
         <div className="container mx-auto flex h-full items-center justify-between px-4">
           <div className="flex items-center gap-4 sm:gap-8 h-full">
             <div className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 shrink-0" onClick={() => {}}>
-              <img src="/logo.jpg" alt="UTH Sync Logo" className="h-10 w-10 shrink-0 object-contain drop-shadow-sm rounded-full" />
+              <img src="/logo.png" alt="UTH Sync Logo" className="h-10 w-10 shrink-0 object-contain drop-shadow-sm rounded-full" />
               <h1 className="text-xl font-bold tracking-tight text-text-primary hidden sm:block">
                 UTH Sync<span className="text-blue-600">.</span>
               </h1>

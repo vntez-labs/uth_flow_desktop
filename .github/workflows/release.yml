@@ -55,4 +55,5 @@ jobs:
           releaseBody: 'Phiên bản mới của UTH Sync. Xem chi tiết cập nhật trong mục Releases.'
           releaseDraft: true
           prerelease: false
+          includeUpdaterJson: true
           args: ${{ matrix.platform == 'macos-latest' && '--target aarch64-apple-darwin' || '' }}
