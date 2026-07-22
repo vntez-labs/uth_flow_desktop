@@ -12,7 +12,7 @@ import Dashboard from "./components/Dashboard";
 // Updater imports
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Progress } from "@heroui/react";
+import { Modal, Button, ProgressBar } from "@heroui/react";
 
 // Map API profile to our Profile interface
 function mapProfile(data: any, fallbackMssv: string): Profile {
@@ -291,52 +291,51 @@ export default function App() {
     </Routes>
 
     {/* Modal Cập Nhật */}
-    <Modal isOpen={!!updateInfo} isDismissable={!isUpdating} isKeyboardDismissDisabled={isUpdating} hideCloseButton={isUpdating} onClose={() => setUpdateInfo(null)}>
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">
-              Bản cập nhật mới (v{updateInfo?.version})
-            </ModalHeader>
-            <ModalBody>
-              {!isUpdating ? (
-                <>
-                  <p>Có một phiên bản mới của UTH Sync. Bạn có muốn tải xuống và cài đặt ngay không?</p>
-                  {updateInfo?.body && (
-                    <div className="mt-2 p-3 bg-bg-secondary rounded-lg text-sm text-text-secondary whitespace-pre-wrap max-h-40 overflow-y-auto">
-                      {updateInfo.body}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col gap-4 py-4">
-                  <p className="text-center font-medium">Đang tải và cài đặt cập nhật...</p>
-                  <Progress 
-                    aria-label="Đang tải..."
-                    value={updateProgress}
-                    color="primary"
-                    showValueLabel={true}
-                    className="max-w-md"
-                  />
-                  <p className="text-xs text-center text-text-tertiary mt-2">Vui lòng không tắt ứng dụng trong quá trình này.</p>
-                </div>
-              )}
-            </ModalBody>
-            <ModalFooter>
-              {!isUpdating && (
-                <>
-                  <Button color="danger" variant="light" onPress={onClose}>
-                    Để sau
-                  </Button>
-                  <Button color="primary" onPress={handleUpdate}>
-                    Cập nhật ngay
-                  </Button>
-                </>
-              )}
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
+    <Modal isOpen={!!updateInfo} onOpenChange={(isOpen) => {
+      if (!isOpen && !isUpdating) setUpdateInfo(null);
+    }}>
+      <Modal.Backdrop isDismissable={!isUpdating} />
+      <Modal.Container>
+        <Modal.Dialog>
+          <Modal.Header className="flex flex-col gap-1">
+            Bản cập nhật mới (v{updateInfo?.version})
+          </Modal.Header>
+          <Modal.Body>
+            {!isUpdating ? (
+              <>
+                <p>Có một phiên bản mới của UTH Sync. Bạn có muốn tải xuống và cài đặt ngay không?</p>
+                {updateInfo?.body && (
+                  <div className="mt-2 p-3 bg-bg-secondary rounded-lg text-sm text-text-secondary whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {updateInfo.body}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col gap-4 py-4">
+                <p className="text-center font-medium">Đang tải và cài đặt cập nhật...</p>
+                <ProgressBar 
+                  aria-label="Đang tải..."
+                  value={updateProgress}
+                  className="max-w-md"
+                />
+                <p className="text-xs text-center text-text-tertiary mt-2">Vui lòng không tắt ứng dụng trong quá trình này.</p>
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            {!isUpdating && (
+              <>
+                <Button variant="danger-soft" onPress={() => setUpdateInfo(null)}>
+                  Để sau
+                </Button>
+                <Button variant="primary" onPress={handleUpdate}>
+                  Cập nhật ngay
+                </Button>
+              </>
+            )}
+          </Modal.Footer>
+        </Modal.Dialog>
+      </Modal.Container>
     </Modal>
     </>
   );
