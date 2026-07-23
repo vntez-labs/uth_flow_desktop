@@ -401,7 +401,7 @@ function LoginForm({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-2xl bg-bg-primary p-4 text-sm font-bold text-black transition-all hover:bg-gray-200 active:scale-[0.98] disabled:bg-bg-primary/50 disabled:active:scale-100"
+          className="w-full rounded-2xl bg-blue-600 p-4 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-[0.98] disabled:bg-blue-600/50 disabled:active:scale-100"
         >
           {isLoading ? "Đang xử lý..." : "Đăng nhập"}
         </button>

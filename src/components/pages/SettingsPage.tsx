@@ -76,7 +76,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-bold text-text-primary">UTH Sync</h4>
-              <p className="text-sm text-text-tertiary">v0.1.4</p>
+              <p className="text-sm text-text-tertiary">v0.2.2</p>
             </div>
             <Button size="sm" variant="ghost">Kiểm tra cập nhật</Button>
           </div>

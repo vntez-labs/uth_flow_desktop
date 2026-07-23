@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 export function useDashboardData({ 
@@ -13,7 +13,7 @@ export function useDashboardData({
   const [debugError, setDebugError] = useState<string>("");
   const [errorToast, setErrorToast] = useState<string | null>(null);
 
-  const callApi = async (command: string, args: any) => {
+  const callApi = useCallback(async (command: string, args: any) => {
     try {
       const res: any = await invoke(command, args);
       if (res && typeof res === 'object' && (res.error || res.status === 401 || res.message === "Invalid JWT token")) {
@@ -29,7 +29,7 @@ export function useDashboardData({
       }, 2000); 
       throw e;
     }
-  };
+  }, [onLogout]);
 
   const [surveyInfo, setSurveyInfo] = useState<{haveForceSurvey: boolean, haveSurvey: boolean} | null>(null);
   const [notes, setNotes] = useState<any[]>([]);

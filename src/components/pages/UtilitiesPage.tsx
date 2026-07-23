@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button, Modal } from '@heroui/react';
-import { Calendar, Download, Plus, Trash2, Copy } from 'lucide-react';
+import { Calendar, Download, Plus, Trash2, Copy, Loader } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
 import { invoke } from '@tauri-apps/api/core';
@@ -17,6 +17,7 @@ export default function UtilitiesPage({
   onDateChange?: (date: Date) => void;
 }) {
   const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // States for custom notes (shifts)
   const [notes, setNotes] = useState<any[]>([]);
@@ -89,11 +90,17 @@ export default function UtilitiesPage({
   };
 
   const handleExportImage = async () => {
-    if (!exportRef.current) return;
+    if (!exportRef.current || isExporting) return;
+    setIsExporting(true);
+    
+    // Allow React to re-render and show the loading spinner before the main thread is blocked
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     try {
       // Find current bg of exportRef
       const bgColor = window.getComputedStyle(exportRef.current).backgroundColor;
-      const image = await toPng(exportRef.current, { backgroundColor: bgColor, pixelRatio: 2 });
+      // Using skipFonts and pixelRatio 1.5 to speed up rendering
+      const image = await toPng(exportRef.current, { backgroundColor: bgColor, pixelRatio: 1.5, skipFonts: true });
       try {
         await invoke('save_base64_image', { base64Data: image });
         alert("Đã tải ảnh về thư mục Downloads thành công!");
@@ -110,6 +117,8 @@ export default function UtilitiesPage({
     } catch (err: any) {
       console.error(err);
       alert("Lỗi xuất ảnh (HTML-to-image): " + (err.message || err));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -443,13 +452,13 @@ export default function UtilitiesPage({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div 
-            onClick={handleExportImage}
-            className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30 rounded-3xl p-6 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-xl transition-all cursor-pointer group flex flex-col items-center text-center"
+            onClick={isExporting ? undefined : handleExportImage}
+            className={`bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30 rounded-3xl p-6 transition-all group flex flex-col items-center text-center ${isExporting ? 'opacity-70 cursor-wait' : 'hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-xl cursor-pointer'}`}
           >
-            <div className="w-16 h-16 bg-bg-primary rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-5 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
-              <Download width={28} height={28} />
+            <div className={`w-16 h-16 bg-bg-primary rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-5 transition-all shadow-sm ${isExporting ? 'scale-110 bg-purple-600 text-white' : 'group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white'}`}>
+              {isExporting ? <Loader className="animate-spin" width={28} height={28} /> : <Download width={28} height={28} />}
             </div>
-            <h4 className="text-xl font-bold text-purple-900 mb-2">Tải Ảnh TKB Tuần</h4>
+            <h4 className="text-xl font-bold text-purple-900 mb-2">{isExporting ? "Đang xử lý ảnh..." : "Tải Ảnh TKB Tuần"}</h4>
             <p className="text-purple-600/80 text-sm leading-relaxed">Chụp lại toàn bộ khung thời khóa biểu tuần ở trên làm hình nền.</p>
           </div>
           
@@ -481,7 +490,7 @@ export default function UtilitiesPage({
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-text-secondary mb-1 block">Ngày</label>
-                    <input type="date" value={newNoteDate} onChange={(e) => setNewNoteDate(e.target.value)} className="w-full px-4 py-2 rounded-xl border border-border-strong outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                    <input type="date" value={newNoteDate} onChange={(e) => { setNewNoteDate(e.target.value); e.target.blur(); }} className="w-full px-4 py-2 rounded-xl border border-border-strong outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

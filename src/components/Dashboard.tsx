@@ -1,11 +1,12 @@
 // @ts-nocheck
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { NavLink, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import CourseDetail from "../pages/CourseDetail";
 import { useUserStore } from "../stores/user.store";
 import { Dropdown, Label, Button, Accordion, Drawer, Modal } from "@heroui/react";
+import { motion, AnimatePresence } from "framer-motion";
 // @ts-ignore
 import {
   CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, House, LayoutDashboard,
@@ -49,11 +50,13 @@ interface MenuItem {
 
 export default function Dashboard({ onLogout, getGradient }: { onLogout: () => void, getGradient: (name: string) => string }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, setAuth } = useUserStore();
   const [openingRoute, setOpeningRoute] = useState<string | null>(null);
   const [isRenewing, setIsRenewing] = useState(false);
-  
-
+  const [selectedHeaderNote, setSelectedHeaderNote] = useState<any>(null);
+  const [isLoadingHeaderNote, setIsLoadingHeaderNote] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -148,6 +151,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
 
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
 
 
   const {
@@ -167,7 +171,41 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
     user, token, isDrawerOpen, viewMode, currentMonth, selectedDate, onLogout
   });
 
-  
+  const generateCalendarDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Shift so Monday is the first day of the week
+    const firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
+    
+    const days = [];
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ date: i, month, year });
+    }
+    
+    const totalCells = days.length <= 35 ? 35 : 42;
+    while (days.length < totalCells) {
+      days.push(null);
+    }
+    return days;
+  };
+
+  const generateWeekDays = () => {
+    const dayOfWeek = selectedDate.getDay();
+    const firstDayOfWeek = selectedDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), firstDayOfWeek + i);
+      days.push({ date: d.getDate(), month: d.getMonth(), year: d.getFullYear() });
+    }
+    return days;
+  };
 
 
   if (!user) return null;
@@ -250,14 +288,27 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                         textValue={note.tieuDe}
                         className="!h-auto !py-3 border-b border-border-color hover:bg-bg-secondary rounded-none !whitespace-normal"
                         style={{ height: 'auto', minHeight: 'fit-content' }}
-                        onPress={() => {
-                          const href = note.noiDung.match(/href=['"]([^'"]+)['"]/);
-                          if (href && href[1]) handleOpenRoute(href[1]);
+                        onPress={async () => {
+                          setSelectedHeaderNote(note);
+                          setIsNoteModalOpen(true);
+                          if (note.id) {
+                            setIsLoadingHeaderNote(true);
+                            try {
+                              const detail = await callApi("fetch_portal_get", { token: token || "", endpoint: `notification/${note.id}` });
+                              if (detail?.success && detail.body) {
+                                setSelectedHeaderNote(detail.body);
+                              }
+                            } catch (e) {
+                              console.error(e);
+                            } finally {
+                              setIsLoadingHeaderNote(false);
+                            }
+                          }
                         }}
                       >
                         <div className="flex flex-col gap-1">
                           <span className="font-bold text-xs text-text-primary">{note.tieuDe}</span>
-                          <div className="text-xs text-text-tertiary line-clamp-3 prose prose-sm prose-blue max-w-none">
+                          <div className="text-xs text-text-tertiary line-clamp-3 prose prose-sm prose-blue max-w-none pointer-events-none">
                             <Suspense fallback={<div className="animate-pulse h-4 bg-gray-200 rounded w-full mt-2"></div>}>
                               <MarkdownNote content={note.noiDung} />
                             </Suspense>
@@ -548,9 +599,15 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
           </Modal>
 
           <div className="container mx-auto">
-            <Routes>
-              <Route path="/" element={
-                <>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
                   {/* Main Greeting & Balance Header */}
                   <div className="mb-8">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -755,41 +812,48 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                 <p className="text-sm text-text-tertiary mb-6">Bạn có {dailyData.length} tiết học hôm nay.</p>
                 
                 <div className="flex flex-col gap-4 flex-1 overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {loadingDaily ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex flex-col gap-3 p-5 rounded-2xl bg-bg-primary border border-border-strong shadow-sm border-l-[6px] border-l-slate-300 animate-pulse">
-                        <div className="h-5 bg-bg-tertiary rounded w-3/4 mb-2"></div>
-                        <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
-                        <div className="h-4 bg-bg-tertiary rounded w-2/3 mt-1"></div>
-                      </div>
-                    ))
-                  ) : dailyData.map((cls, idx) => (
-                    <div key={idx} className="group flex flex-col gap-3 p-5 rounded-2xl bg-bg-primary border border-border-strong shadow-sm hover:shadow-md transition-all border-l-[6px] border-l-blue-600">
-                      <div className="flex items-start justify-between gap-4">
-                        <h4 className="font-bold text-text-primary text-[15px] leading-snug">{cls.tenMonHoc}</h4>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors">
-                          <BookOpen width={16} height={16} />
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 mt-1">
-                        <div className="flex items-center gap-2 text-sm text-text-secondary font-medium">
-                          <Clock width={15} height={15} className="text-text-tertiary shrink-0" />
-                          <span>{cls.timeToDisplay}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-text-secondary font-medium">
-                          <GeoPin width={15} height={15} className="text-text-tertiary shrink-0" />
-                          <span className="truncate">{cls.tenPhong}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {!loadingDaily && dailyData.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center text-text-tertiary gap-2 my-10">
-                      <Calendar width={48} height={48} />
-                      <p>Không có lịch học</p>
-                    </div>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {loadingDaily ? (
+                      <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+                        {Array(3).fill(0).map((_, i) => (
+                          <div key={i} className="flex flex-col gap-3 p-5 rounded-2xl bg-bg-primary border border-border-strong shadow-sm border-l-[6px] border-l-slate-300 animate-pulse">
+                            <div className="h-5 bg-bg-tertiary rounded w-3/4 mb-2"></div>
+                            <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
+                            <div className="h-4 bg-bg-tertiary rounded w-2/3 mt-1"></div>
+                          </div>
+                        ))}
+                      </motion.div>
+                    ) : dailyData.length > 0 ? (
+                      <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-4">
+                        {dailyData.map((cls, idx) => (
+                          <div key={idx} className="group flex flex-col gap-3 p-5 rounded-2xl bg-bg-primary border border-border-strong shadow-sm hover:shadow-md transition-all border-l-[6px] border-l-blue-600">
+                            <div className="flex items-start justify-between gap-4">
+                              <h4 className="font-bold text-text-primary text-[15px] leading-snug">{cls.tenMonHoc}</h4>
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors">
+                                <BookOpen width={16} height={16} />
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 mt-1">
+                              <div className="flex items-center gap-2 text-sm text-text-secondary font-medium">
+                                <Clock width={15} height={15} className="text-text-tertiary shrink-0" />
+                                <span>{cls.timeToDisplay}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-text-secondary font-medium">
+                                <GeoPin width={15} height={15} className="text-text-tertiary shrink-0" />
+                                <span className="truncate">{cls.tenPhong}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </motion.div>
+                    ) : (
+                      <motion.div key="empty" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="flex-1 flex flex-col items-center justify-center text-text-tertiary gap-2 my-10">
+                        <Calendar width={48} height={48} />
+                        <p>Không có lịch học</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -815,23 +879,28 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                 </div>
               </div>
               
-              <div className="flex flex-col gap-3">
-                {(() => {
-                  if (loadingMoodle) {
-                    return Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-border-color bg-bg-secondary animate-pulse">
-                        <div className="h-10 w-10 shrink-0 rounded-full bg-bg-tertiary"></div>
-                        <div className="flex-1">
-                          <div className="h-5 bg-bg-tertiary rounded w-2/3 mb-2"></div>
-                          <div className="h-4 bg-bg-tertiary rounded w-1/3 mb-2"></div>
-                          <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
-                        </div>
-                      </div>
-                    ));
-                  }
-                  if (!moodleEvents || !Array.isArray(moodleEvents) || !moodleEvents[0]?.data?.events) {
-                    return <div className="text-center py-6 text-text-tertiary">Không có dữ liệu deadline</div>;
-                  }
+              <AnimatePresence mode="wait">
+                <div className="flex flex-col gap-3">
+                  {(() => {
+                    if (loadingMoodle) {
+                      return (
+                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-3">
+                          {Array(3).fill(0).map((_, i) => (
+                            <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-border-color bg-bg-secondary animate-pulse">
+                              <div className="h-10 w-10 shrink-0 rounded-full bg-bg-tertiary"></div>
+                              <div className="flex-1">
+                                <div className="h-5 bg-bg-tertiary rounded w-2/3 mb-2"></div>
+                                <div className="h-4 bg-bg-tertiary rounded w-1/3 mb-2"></div>
+                                <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
+                              </div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      );
+                    }
+                    if (!moodleEvents || !Array.isArray(moodleEvents) || !moodleEvents[0]?.data?.events) {
+                      return <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6 text-text-tertiary">Không có dữ liệu deadline</motion.div>;
+                    }
                   
                   const allEvents = moodleEvents[0].data.events;
                   const now = Date.now() / 1000;
@@ -844,36 +913,41 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
 
                   if (filteredEvents.length === 0) {
                     return (
-                      <div className="text-center py-6 text-text-tertiary font-medium bg-bg-secondary rounded-xl border border-border-color border-dashed">
+                      <motion.div key="empty-filter" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6 text-text-tertiary font-medium bg-bg-secondary rounded-xl border border-border-color border-dashed">
                         🎉 Tuyệt vời! Bạn không có deadline nào trong {deadlineFilter === 'all' ? 'thời gian tới' : `${deadlineFilter} ngày tới`}.
-                      </div>
+                      </motion.div>
                     );
                   }
 
-                  return filteredEvents.map((event: any) => {
-                    const dueDate = new Date(event.timesort * 1000);
-                    const isOverdue = event.timesort < now;
-                    
                     return (
-                      <div key={event.id} className="flex items-start gap-4 p-4 rounded-xl border border-border-color bg-bg-secondary hover:bg-bg-tertiary transition-colors">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                          {isOverdue ? '⚠️' : '⏰'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <a href={event.url} target="_blank" rel="noreferrer" className="block font-bold text-text-primary text-base hover:text-blue-600 transition-colors break-words">
-                            {event.name}
-                          </a>
-                          <p className="text-sm text-text-secondary mt-1 font-medium">{event.course?.fullname || "Không rõ môn"}</p>
-                          <p className={`text-sm mt-1 flex items-center gap-1 ${isOverdue ? 'text-red-500 font-bold' : 'text-text-tertiary'}`}>
-                            <span className="font-semibold">Hạn nộp:</span> {dueDate.toLocaleString('vi-VN')}
-                            {isOverdue && " (Đã quá hạn)"}
-                          </p>
-                        </div>
-                      </div>
+                      <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col gap-3">
+                        {filteredEvents.map((event: any) => {
+                          const dueDate = new Date(event.timesort * 1000);
+                          const isOverdue = event.timesort < now;
+                          
+                          return (
+                            <div key={event.id} className="flex items-start gap-4 p-4 rounded-xl border border-border-color bg-bg-secondary hover:bg-bg-tertiary transition-colors">
+                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {isOverdue ? '⚠️' : '⏰'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <a href={event.url} target="_blank" rel="noreferrer" className="block font-bold text-text-primary text-base hover:text-blue-600 transition-colors break-words">
+                                  {event.name}
+                                </a>
+                                <p className="text-sm text-text-secondary mt-1 font-medium">{event.course?.fullname || "Không rõ môn"}</p>
+                                <p className={`text-sm mt-1 flex items-center gap-1 ${isOverdue ? 'text-red-500 font-bold' : 'text-text-tertiary'}`}>
+                                  <span className="font-semibold">Hạn nộp:</span> {dueDate.toLocaleString('vi-VN')}
+                                  {isOverdue && " (Đã quá hạn)"}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </motion.div>
                     );
-                  });
-                })()}
-              </div>
+                  })()}
+                </div>
+              </AnimatePresence>
             </div>
 
             {/* Academic Stats */}
@@ -920,35 +994,40 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                 </div>
               </div>
               
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {(() => {
-                  if (loadingMoodle) {
-                    return Array(8).fill(0).map((_, i) => (
-                      <div key={i} className="flex flex-col gap-4 p-5 rounded-2xl bg-bg-primary border border-border-color shadow-sm animate-pulse">
-                        <div className="flex justify-between items-start">
-                          <div className="w-12 h-12 bg-bg-tertiary rounded-xl"></div>
-                          <div className="w-6 h-6 bg-bg-tertiary rounded-full"></div>
-                        </div>
-                        <div>
-                          <div className="h-5 bg-bg-tertiary rounded w-3/4 mb-2"></div>
-                          <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
-                        </div>
-                        <div className="mt-auto">
-                          <div className="flex justify-between mb-2">
-                            <div className="h-3 bg-bg-tertiary rounded w-1/4"></div>
-                            <div className="h-3 bg-bg-tertiary rounded w-1/4"></div>
-                          </div>
-                          <div className="h-2 w-full bg-bg-tertiary rounded-full"></div>
-                        </div>
-                      </div>
-                    ));
-                  }
+              <div className="p-6">
+                <AnimatePresence mode="wait">
+                  {(() => {
+                    if (loadingMoodle) {
+                      return (
+                        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                          {Array(8).fill(0).map((_, i) => (
+                            <div key={i} className="flex flex-col gap-4 p-5 rounded-2xl bg-bg-primary border border-border-color shadow-sm animate-pulse">
+                              <div className="flex justify-between items-start">
+                                <div className="w-12 h-12 bg-bg-tertiary rounded-xl"></div>
+                                <div className="w-6 h-6 bg-bg-tertiary rounded-full"></div>
+                              </div>
+                              <div>
+                                <div className="h-5 bg-bg-tertiary rounded w-3/4 mb-2"></div>
+                                <div className="h-4 bg-bg-tertiary rounded w-1/2"></div>
+                              </div>
+                              <div className="mt-auto">
+                                <div className="flex justify-between mb-2">
+                                  <div className="h-3 bg-bg-tertiary rounded w-1/4"></div>
+                                  <div className="h-3 bg-bg-tertiary rounded w-1/4"></div>
+                                </div>
+                                <div className="h-2 w-full bg-bg-tertiary rounded-full"></div>
+                              </div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      );
+                    }
 
-                  let moodleCourses = moodleEvents && Array.isArray(moodleEvents) && moodleEvents.length > 1 ? moodleEvents[1]?.data?.courses : null;
-                  
-                  if (!moodleCourses) {
-                    return <div className="col-span-full text-center py-8 text-text-tertiary">Không có dữ liệu khóa học</div>;
-                  }
+                    let moodleCourses = moodleEvents && Array.isArray(moodleEvents) && moodleEvents.length > 1 ? moodleEvents[1]?.data?.courses : null;
+                    
+                    if (!moodleCourses) {
+                      return <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="col-span-full text-center py-8 text-text-tertiary">Không có dữ liệu khóa học</motion.div>;
+                    }
                   
                   if (moodleCourses.length === 0) {
                     return (
@@ -1010,7 +1089,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                   }
                   
                   return (
-                    <>
+                    <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                       {displayCourses.map((course: any) => (
                         <a 
                           key={course.id} 
@@ -1095,22 +1174,44 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                           </div>
                         )}
                       </div>
-                    </>
+                    </motion.div>
                   );
                 })()}
+                </AnimatePresence>
               </div>
             </div>
-          </>
-        } />
+                </motion.div>
+                } />
 
-        <Route path="utilities" element={<UtilitiesPage dailyData={dailyData} selectedDate={selectedDate} onDateChange={setSelectedDate} monthlyData={monthlyData} />} />
-        <Route path="about" element={<AboutPage />} />
-        <Route path="notifications" element={<NotificationPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="course/:id" element={<CourseDetail />} />
+                <Route path="utilities" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <UtilitiesPage dailyData={dailyData} selectedDate={selectedDate} onDateChange={setSelectedDate} monthlyData={monthlyData} />
+                  </motion.div>
+                } />
+                <Route path="about" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <AboutPage />
+                  </motion.div>
+                } />
+                <Route path="notifications" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <NotificationPage />
+                  </motion.div>
+                } />
+                <Route path="settings" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <SettingsPage />
+                  </motion.div>
+                } />
+                <Route path="course/:id" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <CourseDetail />
+                  </motion.div>
+                } />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AnimatePresence>
           </div>
         </main>
       </div>
@@ -1141,6 +1242,47 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
           </div>
         </div>
       )}
+
+      {/* Note Details Modal */}
+      <Modal isOpen={isNoteModalOpen} onOpenChange={setIsNoteModalOpen}>
+        <Modal.Backdrop>
+          <Modal.Container>
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading className="font-bold text-lg leading-tight pr-4">
+                  {selectedHeaderNote?.tieuDe || "Chi tiết thông báo"}
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="py-4 overflow-y-auto max-h-[70vh]">
+                <AnimatePresence mode="wait">
+                  {isLoadingHeaderNote ? (
+                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-8 space-y-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="text-sm font-medium text-text-secondary">Đang tải nội dung...</span>
+                    </motion.div>
+                  ) : selectedHeaderNote ? (
+                    <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm text-text-primary prose prose-blue max-w-none break-words">
+                      <Suspense fallback={<div className="animate-pulse h-4 bg-gray-200 rounded w-full mt-2"></div>}>
+                        <MarkdownNote content={selectedHeaderNote.noiDung} />
+                      </Suspense>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </Modal.Body>
+              <Modal.Footer className="flex justify-end gap-2">
+                {selectedHeaderNote?.id && (
+                  <Button variant="ghost" onPress={() => window.open(`https://portal.ut.edu.vn/thong-bao/${selectedHeaderNote.id}`, '_blank')}>
+                    Mở trong Portal
+                  </Button>
+                )}
+                <Button className="bg-blue-600 text-white" onPress={() => setIsNoteModalOpen(false)}>
+                  Đóng
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </div>
   );
 }
