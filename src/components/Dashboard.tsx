@@ -31,6 +31,7 @@ import rehypeRaw from 'rehype-raw';
 import UtilitiesPage from "./pages/UtilitiesPage";
 import AboutPage from "./pages/AboutPage";
 import NotificationPage from "./pages/NotificationPage";
+import SettingsPage from "./pages/SettingsPage";
 import AcademicStats from "./AcademicStats";
 
 interface MenuItem {
@@ -536,6 +537,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
               <Dropdown.Popover>
                 <Dropdown.Menu aria-label="User Actions" onAction={(key) => {
                   if (key === 'logout') onLogout();
+                  else if (key === 'settings') navigate('/dashboard/settings');
                 }}>
                   <Dropdown.Item id="profile" textValue="Profile" className="h-14 gap-2">
                     <Label className="flex flex-col items-start">
@@ -1354,6 +1356,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
         <Route path="utilities" element={<UtilitiesPage dailyData={dailyData} selectedDate={selectedDate} onDateChange={setSelectedDate} monthlyData={monthlyData} />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="notifications" element={<NotificationPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="course/:id" element={<CourseDetail />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />

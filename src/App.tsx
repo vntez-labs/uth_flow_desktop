@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Eye, EyeSlash } from "@gravity-ui/icons";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
+import { getVersion } from "@tauri-apps/api/app";
 
 import { useUserStore } from "./stores/user.store";
 import type { Account, Profile } from "./interfaces";
@@ -12,7 +13,9 @@ import Dashboard from "./components/Dashboard";
 // Updater imports
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { Modal, Button, ProgressBar } from "@heroui/react";
+// no unused imports
+
+import Changelog from "./pages/Changelog";
 
 // Map API profile to our Profile interface
 function mapProfile(data: any, fallbackMssv: string): Profile {
@@ -55,9 +58,7 @@ export default function App() {
   const navigate = useNavigate();
 
   // Updater states
-  const [updateInfo, setUpdateInfo] = useState<any>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateReady, setUpdateReady] = useState(false);
 
   // Kiểm tra cập nhật khi khởi động
   useEffect(() => {
@@ -65,7 +66,11 @@ export default function App() {
       try {
         const update = await check();
         if (update) {
-          setUpdateInfo(update);
+          // Tải xuống ngầm
+          await update.downloadAndInstall((event: any) => {
+            // Có thể track log ở đây nếu muốn
+          });
+          setUpdateReady(true);
         }
       } catch (err) {
         console.error("Lỗi khi kiểm tra cập nhật:", err);
@@ -73,36 +78,6 @@ export default function App() {
     };
     checkForUpdates();
   }, []);
-
-  const handleUpdate = async () => {
-    if (!updateInfo) return;
-    setIsUpdating(true);
-    let downloaded = 0;
-    let contentLength = 0;
-    try {
-      await updateInfo.downloadAndInstall((event: any) => {
-        switch (event.event) {
-          case 'Started':
-            contentLength = event.data.contentLength || 0;
-            break;
-          case 'Progress':
-            downloaded += event.data.chunkLength;
-            if (contentLength > 0) {
-              setUpdateProgress(Math.round((downloaded / contentLength) * 100));
-            }
-            break;
-          case 'Finished':
-            setUpdateProgress(100);
-            break;
-        }
-      });
-      await relaunch();
-    } catch (err) {
-      console.error("Lỗi khi cài đặt bản cập nhật:", err);
-      alert("Cập nhật thất bại. Vui lòng thử lại sau.");
-      setIsUpdating(false);
-    }
-  };
 
   const autoLogin = async (mssv: string) => {
     setIsInitializing(true);
@@ -117,10 +92,35 @@ export default function App() {
 
       await invoke("login_account", { username: mssv, password: savedPass });
       setAuth(typeof tk === 'string' ? tk : tk.token, savedProfile);
-      navigate("/dashboard", { replace: true });
+      
+      try {
+        const currentVersion = await getVersion();
+        const lastVersion = localStorage.getItem("appVersion");
+        if (lastVersion && lastVersion !== currentVersion) {
+          localStorage.setItem("appVersion", currentVersion);
+          navigate("/changelog", { replace: true });
+        } else {
+          localStorage.setItem("appVersion", currentVersion);
+          navigate("/dashboard", { replace: true });
+        }
+      } catch (e) {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
-      console.error("Auto login fail", err);
-      // Tự động rớt về account selection nếu lỗi
+      console.error("Auto login fail, trying offline mode", err);
+      try {
+        const savedProfile = await invoke<Profile>("get_profile_by_mssv", { mssv });
+        if (savedProfile) {
+          // Offline mode
+          setAuth("offline-token", savedProfile);
+          navigate("/dashboard", { replace: true });
+          return;
+        }
+      } catch (offlineErr) {
+        console.error("Offline fallback failed", offlineErr);
+      }
+      
+      // Tự động rớt về account selection nếu không thể offline
       setSelectedMssv(mssv);
       navigate("/accounts", { replace: true });
     } finally {
@@ -174,19 +174,34 @@ export default function App() {
 
   return (
     <>
+    {updateReady && (
+      <div 
+        className="fixed top-0 left-0 w-full z-[9999] bg-yellow-400 text-black px-4 py-2.5 text-center text-sm font-bold cursor-pointer hover:bg-yellow-500 transition-colors shadow-md"
+        onClick={() => relaunch()}
+      >
+        ✨ Đã tải xong bản cập nhật mới! Nhấn vào đây để khởi động lại ngay.
+      </div>
+    )}
     <Routes>
+      <Route path="/changelog" element={<Changelog />} />
       <Route path="/dashboard/*" element={
         (isLoggedIn && user) ? (
           <Dashboard 
             getGradient={getGradient}
-            onLogout={() => {
+            onLogout={async () => {
               clearAuth();
               setIsInitializing(true);
-              invoke<Account[]>("get_accounts").then(accs => {
-                setAccounts(accs);
-                setIsInitializing(false);
-                navigate("/accounts", { replace: true });
-              });
+              if (user?.mssv) {
+                try {
+                  await invoke("logout_account", { mssv: user.mssv });
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+              const accs = await invoke<Account[]>("get_accounts");
+              setAccounts(accs);
+              setIsInitializing(false);
+              navigate("/accounts", { replace: true });
             }} 
           />
         ) : <Navigate to="/login" replace />
@@ -279,7 +294,22 @@ export default function App() {
             </div>
             <LoginForm 
               initialUsername={selectedMssv}
-              onSuccess={(t, p) => { setAuth(t, p); navigate("/dashboard", { replace: true }); }}
+              onSuccess={async (t, p) => { 
+                setAuth(t, p); 
+                try {
+                  const currentVersion = await getVersion();
+                  const lastVersion = localStorage.getItem("appVersion");
+                  if (lastVersion && lastVersion !== currentVersion) {
+                    localStorage.setItem("appVersion", currentVersion);
+                    navigate("/changelog", { replace: true });
+                  } else {
+                    localStorage.setItem("appVersion", currentVersion);
+                    navigate("/dashboard", { replace: true });
+                  }
+                } catch (e) {
+                  navigate("/dashboard", { replace: true });
+                }
+              }}
               onBack={accounts.length > 0 ? () => navigate("/accounts") : undefined}
             />
           </div>
@@ -289,54 +319,6 @@ export default function App() {
       {/* Fallback route */}
       <Route path="*" element={<Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />} />
     </Routes>
-
-    {/* Modal Cập Nhật */}
-    <Modal isOpen={!!updateInfo} onOpenChange={(isOpen) => {
-      if (!isOpen && !isUpdating) setUpdateInfo(null);
-    }}>
-      <Modal.Backdrop isDismissable={!isUpdating} />
-      <Modal.Container>
-        <Modal.Dialog>
-          <Modal.Header className="flex flex-col gap-1">
-            Bản cập nhật mới (v{updateInfo?.version})
-          </Modal.Header>
-          <Modal.Body>
-            {!isUpdating ? (
-              <>
-                <p>Có một phiên bản mới của UTH Sync. Bạn có muốn tải xuống và cài đặt ngay không?</p>
-                {updateInfo?.body && (
-                  <div className="mt-2 p-3 bg-bg-secondary rounded-lg text-sm text-text-secondary whitespace-pre-wrap max-h-40 overflow-y-auto">
-                    {updateInfo.body}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col gap-4 py-4">
-                <p className="text-center font-medium">Đang tải và cài đặt cập nhật...</p>
-                <ProgressBar 
-                  aria-label="Đang tải..."
-                  value={updateProgress}
-                  className="max-w-md"
-                />
-                <p className="text-xs text-center text-text-tertiary mt-2">Vui lòng không tắt ứng dụng trong quá trình này.</p>
-              </div>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            {!isUpdating && (
-              <>
-                <Button variant="danger-soft" onPress={() => setUpdateInfo(null)}>
-                  Để sau
-                </Button>
-                <Button variant="primary" onPress={handleUpdate}>
-                  Cập nhật ngay
-                </Button>
-              </>
-            )}
-          </Modal.Footer>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal>
     </>
   );
 }
@@ -354,10 +336,12 @@ function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg("");
 
     try {
       // 1. Get token from API
@@ -392,7 +376,7 @@ function LoginForm({
       onSuccess(typeof token === 'string' ? token : token.token, savedProfile);
     } catch (e: any) {
       console.log("Login Error", e);
-      alert("Đăng nhập thất bại: " + (typeof e === 'string' ? e : JSON.stringify(e)));
+      setErrorMsg("Đăng nhập thất bại. Kiểm tra lại kết nối mạng hoặc mật khẩu.");
     } finally {
       setIsLoading(false);
     }
@@ -436,6 +420,12 @@ function LoginForm({
           </button>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="rounded-xl bg-red-500/10 p-3 text-center text-sm font-medium text-red-500 border border-red-500/20">
+          {errorMsg}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <button

@@ -7,7 +7,7 @@ mod notes;
 mod profiles;
 mod utils;
 
-use crate::accounts::{add_account, get_accounts, login_account, logout_account};
+use crate::accounts::{add_account, get_accounts, login_account, logout_account, remove_account};
 use crate::auth::{
     fetch_portal_get, get_lich_ngay, get_lich_thang, get_lich_tuan, get_main_menu,
     get_moodle_events, get_moodle_course_contents, resolve_moodle_link, download_moodle_file, create_auto_login_webview, get_side_menu, get_summary_profile, login,
@@ -64,6 +64,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             get_profile_by_mssv,
             login_account,
             logout_account,
+            remove_account,
             get_saved_password,
             get_side_menu,
             get_main_menu,

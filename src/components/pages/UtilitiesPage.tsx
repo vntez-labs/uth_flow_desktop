@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button, Modal } from '@heroui/react';
 import { Calendar, Download, Plus, Trash2, Copy } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 import { invoke } from '@tauri-apps/api/core';
 
@@ -93,8 +93,7 @@ export default function UtilitiesPage({
     try {
       // Find current bg of exportRef
       const bgColor = window.getComputedStyle(exportRef.current).backgroundColor;
-      const canvas = await html2canvas(exportRef.current, { scale: 2, backgroundColor: bgColor, useCORS: true });
-      const image = canvas.toDataURL("image/png", 1.0);
+      const image = await toPng(exportRef.current, { backgroundColor: bgColor, pixelRatio: 2 });
       try {
         await invoke('save_base64_image', { base64Data: image });
         alert("Đã tải ảnh về thư mục Downloads thành công!");
@@ -110,7 +109,7 @@ export default function UtilitiesPage({
       }
     } catch (err: any) {
       console.error(err);
-      alert("Lỗi xuất ảnh (HTML2Canvas): " + (err.message || err));
+      alert("Lỗi xuất ảnh (HTML-to-image): " + (err.message || err));
     }
   };
 
