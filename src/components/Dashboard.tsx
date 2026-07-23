@@ -24,15 +24,17 @@ import {
 } from "@gravity-ui/icons";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import { lazy, Suspense } from 'react';
+import { useDashboardData } from "../hooks/useDashboardData";
+import { getStudentYear } from "../utils";
+const MarkdownNote = lazy(() => import('./MarkdownNote'));
 
 import UtilitiesPage from "./pages/UtilitiesPage";
 import AboutPage from "./pages/AboutPage";
 import NotificationPage from "./pages/NotificationPage";
 import SettingsPage from "./pages/SettingsPage";
 import AcademicStats from "./AcademicStats";
+import ScrollToTopButton from "./ScrollToTopButton";
 
 interface MenuItem {
   id: number;
@@ -42,25 +44,15 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-function getStudentYear(khoaHoc?: string) {
-  if (!khoaHoc) return "";
-  const year = parseInt(khoaHoc, 10);
-  if (isNaN(year)) return "";
-  const currentYear = new Date().getFullYear();
-  const studentYear = currentYear - year + 1;
-  return studentYear > 0 ? `Sinh viên năm ${studentYear}` : "Tân sinh viên";
-}
+
 
 
 export default function Dashboard({ onLogout, getGradient }: { onLogout: () => void, getGradient: (name: string) => string }) {
   const navigate = useNavigate();
   const { user, token, setAuth } = useUserStore();
-  const [sideMenu, setSideMenu] = useState<MenuItem[]>([]);
-  const [mainMenu, setMainMenu] = useState<MenuItem[]>([]);
   const [openingRoute, setOpeningRoute] = useState<string | null>(null);
   const [isRenewing, setIsRenewing] = useState(false);
   
-  const [moodleEvents, setMoodleEvents] = useState<any>(null);
 
   
   // Theme state
@@ -79,7 +71,6 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
     }
   }, [isDarkMode]);
 
-  const [loadingMoodle, setLoadingMoodle] = useState(false);
   const [deadlineFilter, setDeadlineFilter] = useState<'1' | '7' | '30' | 'all'>('30');
   
   const [courseSearch, setCourseSearch] = useState("");
@@ -126,7 +117,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
       
       setTimeout(() => {
         driverObj.drive();
-      }, 1000);
+      }, 2500);
     }
   }, []);
 
@@ -158,259 +149,25 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [dailyData, setDailyData] = useState<any[]>([]);
-  const [debugError, setDebugError] = useState<string>("");
+
+  const {
+    surveyInfo, setSurveyInfo,
+    notes, setNotes,
+    popups, setPopups,
+    isPopupModalOpen, setIsPopupModalOpen,
+    isSurveyModalOpen, setIsSurveyModalOpen,
+    credit, fetchCredit, isFetchingCredit,
+    monthlyData, loadingMonthly,
+    dailyData, loadingDaily,
+    moodleEvents, loadingMoodle,
+    sideMenu, loadingSideMenu,
+    mainMenu, loadingMainMenu,
+    debugError, errorToast, callApi
+  } = useDashboardData({
+    user, token, isDrawerOpen, viewMode, currentMonth, selectedDate, onLogout
+  });
+
   
-  // Portal States
-  const [surveyInfo, setSurveyInfo] = useState<{haveForceSurvey: boolean, haveSurvey: boolean} | null>(null);
-  const [notes, setNotes] = useState<any[]>([]);
-  const [popups, setPopups] = useState<any[]>([]);
-  const [isPopupModalOpen, setIsPopupModalOpen] = useState(false);
-  const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
-  const [credit, setCredit] = useState<string>("*****");
-  const [isFetchingCredit, setIsFetchingCredit] = useState(false);
-
-
-
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    if (e.currentTarget.scrollTop > 300) {
-      setShowScrollTop(true);
-    } else {
-      setShowScrollTop(false);
-    }
-  };
-  const scrollToTop = () => {
-    const main = document.getElementById("main-scroll-container");
-    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  useEffect(() => {
-    async function fetchPortalData() {
-      if (!token) return;
-
-      try {
-        const [surveyRes, popupRes, noteRes] = await Promise.all([
-          callApi("fetch_portal_get", { token, endpoint: "survey/checkSurvey" }).catch(() => null),
-          callApi("fetch_portal_get", { token, endpoint: "notification/getPopup" }).catch(() => null),
-          callApi("fetch_portal_get", { token, endpoint: "notification/getNote" }).catch(() => null)
-        ]) as [any, any, any];
-
-        if (surveyRes?.success && surveyRes?.body) {
-          setSurveyInfo(surveyRes.body);
-          if (surveyRes.body.haveSurvey) {
-            setIsSurveyModalOpen(true);
-          }
-        }
-        
-        if (popupRes?.success && Array.isArray(popupRes.body) && popupRes.body.length > 0) {
-          setPopups(popupRes.body);
-          setIsPopupModalOpen(true);
-        }
-        
-        if (noteRes?.success && Array.isArray(noteRes.body)) {
-          setNotes(noteRes.body);
-        }
-      } catch (err) {
-        console.error("Lỗi lấy data portal:", err);
-      } finally {
-
-      }
-    }
-    fetchPortalData();
-  }, [token]);
-
-  const fetchCredit = async () => {
-    if (credit !== "*****" || isFetchingCredit || !token) return;
-    setIsFetchingCredit(true);
-    try {
-      const res: any = await callApi("fetch_portal_get", { token, endpoint: "user/getCredit" });
-      if (res?.success && res?.body) {
-        setCredit(res.body);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsFetchingCredit(false);
-    }
-  };
-
-  const [errorToast, setErrorToast] = useState<string | null>(null);
-
-  const callApi = async (command: string, args: any) => {
-    try {
-      const res: any = await invoke(command, args);
-      if (res && typeof res === 'object' && (res.error || res.status === 401 || res.message === "Invalid JWT token")) {
-        throw new Error(res.error || res.message || "Lỗi kết nối hoặc phiên đăng nhập hết hạn");
-      }
-      return res;
-    } catch (e: any) {
-      const msg = typeof e === 'string' ? e : e.message || String(e);
-      console.error("API Error:", msg);
-      setErrorToast(msg);
-      setTimeout(() => {
-        onLogout();
-      }, 2000); // Chờ 2s cho user đọc toast rồi văng ra màn chọn account
-      throw e;
-    }
-  };
-
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
-
-  const generateCalendarDays = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    // adjust firstDay for Monday start (0 is Sunday, so make 1 = Mon, ..., 7 = Sun)
-    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-    
-    const days = [];
-    for (let i = 0; i < startOffset; i++) days.push(null);
-    for (let i = 1; i <= daysInMonth; i++) days.push({ date: i, month, year });
-    // fill remaining to complete rows of 7
-    while (days.length % 7 !== 0) days.push(null);
-    
-    return days;
-  };
-
-  const generateWeekDays = () => {
-    const date = new Date(selectedDate.getTime());
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
-    const startOfWeek = new Date(date.setDate(diff));
-    
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek.getTime());
-      d.setDate(startOfWeek.getDate() + i);
-      days.push({ date: d.getDate(), month: d.getMonth(), year: d.getFullYear() });
-    }
-    return days;
-  };
-
-  const [loadingMonthly, setLoadingMonthly] = useState(false);
-  useEffect(() => {
-    async function fetchSchedule() {
-      if (!token) return;
-      setLoadingMonthly(true);
-      try {
-        const endpoint = viewMode === 'month' ? 'get_lich_thang' : 'get_lich_tuan';
-        const d = viewMode === 'month' 
-           ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
-           : selectedDate;
-           
-        const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        
-        const res: any = await callApi(endpoint, { token, date: formattedDate });
-        const data = res?.body || res?.data || res;
-        
-        // Since res is already a parsed JSON object
-        if (Array.isArray(data)) {
-          setMonthlyData(data);
-        } else if (res && res.success && Array.isArray(res.body)) {
-          setMonthlyData(res.body);
-        } else {
-          setDebugError(prev => prev + `\nLich: Unexpected format: ${JSON.stringify(res).substring(0, 100)}`);
-        }
-      } catch (err: any) {
-        console.error("Lỗi tải lịch:", err);
-        setDebugError(prev => prev + `\nLich Error: ${err.toString()}`);
-      } finally {
-        setLoadingMonthly(false);
-      }
-    }
-    fetchSchedule();
-    
-  }, [currentMonth, selectedDate, viewMode, token]);
-
-  // Fetch Moodle Events
-  useEffect(() => {
-    async function fetchMoodle() {
-      if (!user) return;
-      setLoadingMoodle(true);
-      try {
-        const username = user?.mssv || (user as any)?.username;
-        const res = await invoke("get_moodle_events", { username });
-        setMoodleEvents(res);
-      } catch (err: any) {
-        console.error("Lỗi tải moodle:", err);
-      } finally {
-        setLoadingMoodle(false);
-      }
-    }
-    fetchMoodle();
-  }, [user, token]);
-
-  const [loadingDaily, setLoadingDaily] = useState(false);
-  useEffect(() => {
-    async function fetchDailySchedule() {
-      if (!token) return;
-      setLoadingDaily(true);
-      try {
-        const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-        
-        const res: any = await callApi("get_lich_ngay", { token, date: formattedDate });
-        const data = res?.body || res?.data || res;
-        
-        if (Array.isArray(data)) {
-          setDailyData(data);
-        } else if (res && res.success && Array.isArray(res.body)) {
-          setDailyData(res.body);
-        } else {
-          setDebugError(prev => prev + `\nLichNgay: Unexpected format: ${JSON.stringify(res).substring(0, 100)}`);
-        }
-      } catch (err: any) {
-        console.error("Lỗi tải lịch ngày:", err);
-        setDebugError(prev => prev + `\nLichNgay Error: ${err.toString()}`);
-      } finally {
-        setLoadingDaily(false);
-      }
-    }
-    fetchDailySchedule();
-  }, [selectedDate, token]);
-  
-  const [loadingSideMenu, setLoadingSideMenu] = useState(false);
-  const [loadingMainMenu, setLoadingMainMenu] = useState(false);
-
-  useEffect(() => {
-    async function fetchMainMenu() {
-      if (!token) return;
-      setLoadingMainMenu(true);
-      try {
-        const mainRes: any = await callApi("get_main_menu", { token });
-        const mainData = mainRes?.body || mainRes?.data || mainRes;
-        if (Array.isArray(mainData)) setMainMenu(mainData);
-        else setDebugError(prev => prev + `\nMainMenu Error: Not array. Type=${typeof mainData}, Res=${JSON.stringify(mainRes).substring(0,100)}`);
-      } catch (err: any) {
-        console.error("Lỗi tải menu chính:", err);
-        setDebugError(prev => prev + `\nMenu Fetch Error: ${err.toString()}`);
-      } finally {
-        setLoadingMainMenu(false);
-      }
-    }
-    fetchMainMenu();
-  }, [token]);
-
-  useEffect(() => {
-    async function fetchSideMenu() {
-      if (!token || !isDrawerOpen || sideMenu.length > 0) return;
-      setLoadingSideMenu(true);
-      try {
-        const sideRes: any = await callApi("get_side_menu", { token });
-        const sideData = sideRes?.body || sideRes?.data || sideRes;
-        if (Array.isArray(sideData)) setSideMenu(sideData);
-        else setDebugError(prev => prev + `\nSideMenu Error: Not array. Type=${typeof sideData}, Res=${JSON.stringify(sideRes).substring(0,100)}`);
-      } catch (err: any) {
-        console.error("Lỗi tải menu phụ:", err);
-        setDebugError(prev => prev + `\nSideMenu Fetch Error: ${err.toString()}`);
-      } finally {
-        setLoadingSideMenu(false);
-      }
-    }
-    fetchSideMenu();
-  }, [isDrawerOpen, token]);
 
 
   if (!user) return null;
@@ -501,15 +258,9 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                         <div className="flex flex-col gap-1">
                           <span className="font-bold text-xs text-text-primary">{note.tieuDe}</span>
                           <div className="text-xs text-text-tertiary line-clamp-3 prose prose-sm prose-blue max-w-none">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]} 
-                              rehypePlugins={[rehypeRaw]}
-                              components={{
-                                a: ({node, ...props}) => <a {...props} onClick={(e) => e.preventDefault()} className="text-blue-600 font-medium" />
-                              }}
-                            >
-                              {note.noiDung}
-                            </ReactMarkdown>
+                            <Suspense fallback={<div className="animate-pulse h-4 bg-gray-200 rounded w-full mt-2"></div>}>
+                              <MarkdownNote content={note.noiDung} />
+                            </Suspense>
                           </div>
                         </div>
                       </Dropdown.Item>
@@ -729,7 +480,6 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
         {/* MAIN CONTENT */}
         <main 
           id="main-scroll-container"
-          onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-6 bg-bg-secondary scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           <Modal isOpen={isSurveyModalOpen} onOpenChange={setIsSurveyModalOpen}>
@@ -1366,17 +1116,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
       </div>
 
       {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-24 right-6 z-[90] flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl"
-          aria-label="Cuộn lên đầu trang"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m18 15-6-6-6 6"/>
-          </svg>
-        </button>
-      )}
+      <ScrollToTopButton containerId="main-scroll-container" />
 
       {/* Global Toast for Browser Opening */}
       {openingRoute && (

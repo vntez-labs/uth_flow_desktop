@@ -82,6 +82,40 @@ export default function CourseDetail() {
   }, [id, user]);
 
   const [openingModule, setOpeningModule] = useState<string | null>(null);
+  const [updatingActivity, setUpdatingActivity] = useState<string | null>(null);
+
+  const handleToggleCompletion = async (e: React.MouseEvent, cmInfo: any) => {
+    e.stopPropagation();
+    try {
+      setUpdatingActivity(cmInfo.id);
+      const username = user?.mssv || (user as any)?.username;
+      
+      const isCurrentlyDone = cmInfo.completionstate === 1 || cmInfo.completionstate === 2 || cmInfo.iscomplete;
+      const newStatus = !isCurrentlyDone;
+      
+      await invoke("mark_moodle_activity_done", {
+        username,
+        cmid: Number(cmInfo.id),
+        completed: newStatus
+      });
+      
+      setCourseData((prev: any) => {
+        if (!prev) return prev;
+        const newData = JSON.parse(JSON.stringify(prev));
+        const cm = newData.cm.find((c: any) => c.id === cmInfo.id);
+        if (cm) {
+            cm.completionstate = newStatus ? 1 : 0;
+            cm.iscomplete = newStatus;
+        }
+        return newData;
+      });
+      
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingActivity(null);
+    }
+  };
 
   const handleOpenModule = async (module: any) => {
     if (!module.url) return;
@@ -241,17 +275,28 @@ export default function CourseDetail() {
                             
                             {/* Trạng thái hoàn thành (Completion Status) */}
                             {(cmInfo.hascompletion || cmInfo.completion > 0 || cmInfo.completionstate !== undefined) && (
-                              <div className="flex-shrink-0 flex items-center pl-2 border-l border-border-color/50 ml-2">
-                                {(cmInfo.completionstate === 1 || cmInfo.completionstate === 2 || cmInfo.iscomplete) ? (
-                                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-500" title="Đã hoàn thành">
+                              <div 
+                                className="flex-shrink-0 flex items-center pl-2 border-l border-border-color/50 ml-2"
+                                onClick={(e) => {
+                                  // Nếu là tự động (isautomatic), không cho click
+                                  if (cmInfo.isautomatic) return;
+                                  handleToggleCompletion(e, cmInfo);
+                                }}
+                              >
+                                {updatingActivity === cmInfo.id ? (
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center">
+                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                  </div>
+                                ) : (cmInfo.completionstate === 1 || cmInfo.completionstate === 2 || cmInfo.iscomplete) ? (
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-green-500/30 bg-green-500/20 text-green-500' : 'bg-green-500/20 text-green-500'}`} title={!cmInfo.isautomatic ? "Đánh dấu chưa hoàn thành" : "Đã hoàn thành"}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                   </div>
                                 ) : (cmInfo.completionstate === 3 || cmInfo.isfail) ? (
-                                  <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500" title="Không đạt">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-red-500/30 bg-red-500/20 text-red-500' : 'bg-red-500/20 text-red-500'}`} title={!cmInfo.isautomatic ? "Đánh dấu hoàn thành" : "Không đạt"}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                   </div>
                                 ) : (
-                                  <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-400/50 flex items-center justify-center text-gray-400" title="Chưa hoàn thành">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-red-500/10 border-2 border-dashed border-red-400 text-red-400' : 'border-2 border-dashed border-gray-400/50 text-gray-400'}`} title={!cmInfo.isautomatic ? "Đánh dấu hoàn thành" : "Chưa hoàn thành"}>
                                   </div>
                                 )}
                               </div>

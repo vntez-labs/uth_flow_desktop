@@ -10,7 +10,7 @@ mod utils;
 use crate::accounts::{add_account, get_accounts, login_account, logout_account, remove_account};
 use crate::auth::{
     fetch_portal_get, get_lich_ngay, get_lich_thang, get_lich_tuan, get_main_menu,
-    get_moodle_events, get_moodle_course_contents, resolve_moodle_link, download_moodle_file, create_auto_login_webview, get_side_menu, get_summary_profile, login,
+    get_moodle_events, get_moodle_course_contents, mark_moodle_activity_done, resolve_moodle_link, download_moodle_file, create_auto_login_webview, get_side_menu, get_summary_profile, login,
 };
 use crate::credentials::get_saved_password;
 use crate::database::init_db;
@@ -73,6 +73,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             get_lich_ngay,
             get_moodle_events,
             get_moodle_course_contents,
+            mark_moodle_activity_done,
             fetch_portal_get,
             resolve_moodle_link,
             download_moodle_file,

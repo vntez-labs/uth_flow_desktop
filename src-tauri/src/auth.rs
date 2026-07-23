@@ -437,6 +437,64 @@ pub async fn get_moodle_course_contents(username: String, course_id: i64) -> Res
 }
 
 #[tauri::command]
+pub async fn mark_moodle_activity_done(username: String, cmid: i64, completed: bool) -> Result<serde_json::Value, String> {
+    let client = get_moodle_authenticated_client(&username).await?;
+
+    let course_page_res = client
+        .get("https://courses.ut.edu.vn/my/courses.php")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        )
+        .send()
+        .await
+        .map_err(|e| format!("Lỗi tải trang courses: {}", e))?;
+
+    let course_html = course_page_res.text().await.unwrap_or_default();
+
+    let sesskey = course_html
+        .split(r#""sesskey":""#)
+        .nth(1)
+        .and_then(|s| s.split('"').next())
+        .or_else(|| {
+            course_html
+                .split("name=\"sesskey\"")
+                .nth(1)
+                .and_then(|s| s.split("value=\"").nth(1))
+                .and_then(|s| s.split('"').next())
+        })
+        .ok_or_else(|| format!("Không tìm thấy sesskey."))?;
+
+    let payload = serde_json::json!([
+        {
+            "index": 0,
+            "methodname": "core_completion_update_activity_completion_status_manually",
+            "args": {
+                "cmid": cmid,
+                "completed": completed
+            }
+        }
+    ]);
+
+    let req = client.post(format!("https://courses.ut.edu.vn/lib/ajax/service.php?sesskey={}&info=core_completion_update_activity_completion_status_manually", sesskey))
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Content-Type", "application/json");
+
+    let res = req
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Lỗi cập nhật trạng thái: {}", e))?;
+
+    let json = res
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Lỗi parse JSON: {}", e))?;
+
+    Ok(json)
+}
+
+#[tauri::command]
 pub async fn resolve_moodle_link(username: String, url: String) -> Result<String, String> {
     let client = get_moodle_authenticated_client(&username).await?;
     
