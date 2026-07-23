@@ -45,7 +45,7 @@ export default function Changelog() {
       <div className="flex items-center gap-4 p-6 border-b border-white/5 bg-bg-primary z-10 shadow-sm">
         <Button 
           isIconOnly
-          variant="light" 
+          variant="ghost" 
           onPress={() => navigate("/dashboard", { replace: true })}
         >
           <ArrowLeft className="w-5 h-5 text-text-secondary" />
@@ -82,7 +82,7 @@ export default function Changelog() {
       
       <div className="p-6 border-t border-white/5 bg-bg-primary flex justify-center z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <Button 
-          color="primary" 
+          variant="primary" 
           size="lg"
           className="w-full max-w-md font-bold shadow-lg shadow-blue-500/20"
           onPress={() => navigate("/dashboard", { replace: true })}

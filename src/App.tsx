@@ -67,7 +67,7 @@ export default function App() {
         const update = await check();
         if (update) {
           // Tải xuống ngầm
-          await update.downloadAndInstall((event: any) => {
+          await update.downloadAndInstall((_event: any) => {
             // Có thể track log ở đây nếu muốn
           });
           setUpdateReady(true);

@@ -29,10 +29,10 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 flex flex-col gap-2">
-          <Button variant="primary" className="justify-start font-bold bg-blue-100 text-blue-700 w-full" startContent={<Monitor width={18} />}>Giao diện</Button>
-          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full" startContent={<User width={18} />}>Tài khoản</Button>
-          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full" startContent={<Bell width={18} />}>Thông báo</Button>
-          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full" startContent={<Shield width={18} />}>Bảo mật</Button>
+          <Button variant="primary" className="justify-start font-bold bg-blue-100 text-blue-700 w-full flex items-center gap-2"><Monitor width={18} /> Giao diện</Button>
+          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full flex items-center gap-2"><User width={18} /> Tài khoản</Button>
+          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full flex items-center gap-2"><Bell width={18} /> Thông báo</Button>
+          <Button variant="ghost" className="justify-start font-medium text-text-secondary w-full flex items-center gap-2"><Shield width={18} /> Bảo mật</Button>
         </div>
         
         <div className="md:col-span-2 bg-bg-primary rounded-3xl border border-border-color p-6 sm:p-8 shadow-sm flex flex-col gap-6">
