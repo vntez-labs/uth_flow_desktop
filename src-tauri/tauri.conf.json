@@ -29,6 +29,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "publisher": "hnamhocit",
     "shortDescription": "Gọn gàng lịch học. Dứt điểm deadline.",
