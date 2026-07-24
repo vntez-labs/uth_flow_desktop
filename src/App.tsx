@@ -147,7 +147,13 @@ export default function App() {
     {updateReady && (
       <div 
         className="fixed top-0 left-0 w-full z-[9999] bg-yellow-400 text-black px-4 py-2.5 text-center text-sm font-bold cursor-pointer hover:bg-yellow-500 transition-colors shadow-md"
-        onClick={() => relaunch()}
+        onClick={async () => {
+          try {
+            await relaunch();
+          } catch (e) {
+            console.error("Lỗi khi khởi động lại:", e);
+          }
+        }}
       >
         ✨ Đã tải xong bản cập nhật mới! Nhấn vào đây để khởi động lại ngay.
       </div>
