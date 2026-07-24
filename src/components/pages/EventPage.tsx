@@ -4,7 +4,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@heroui/react';
 import { useUserStore } from '../../stores/user.store';
 import { Calendar, Clock, MapPin, Info, ArrowLeft, CheckCircle2, Ticket, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import MarkdownNote from '../MarkdownNote';
 
 interface EventDetail {
@@ -315,9 +314,8 @@ export default function EventPage() {
 
             <Button 
               size="lg" 
-              isLoading={isRegistering}
               onPress={handleRegister}
-              isDisabled={!eventData.isAllowRegister || !timeLeft || (!selectedDate && dates.length > 0)}
+              isDisabled={isRegistering || !eventData.isAllowRegister || !timeLeft || (!selectedDate && dates.length > 0)}
               className={`w-full h-14 text-lg font-bold shadow-lg mt-auto rounded-2xl ${
                 eventData.isAllowRegister && timeLeft && (selectedDate || dates.length === 0)
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-emerald-500/30'
