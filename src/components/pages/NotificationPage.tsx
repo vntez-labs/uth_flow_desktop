@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Bell, ChevronLeft, ChevronRight, FileText, Filter } from 'lucide-react';
 import { Modal, Button } from '@heroui/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import { useNavigate } from 'react-router-dom';
+import MarkdownNote from '../MarkdownNote';
 import { useUserStore } from '../../stores/user.store';
 
 interface Category {
@@ -21,6 +20,7 @@ interface Notification {
 
 export default function NotificationPage() {
   const { token } = useUserStore();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   
@@ -45,7 +45,27 @@ export default function NotificationPage() {
         endpoint: `notification/${notifId}` 
       });
       if (res?.success && res?.body) {
-        setSelectedNotification(res.body);
+        const body = res.body;
+        const match = body.noiDung?.match(/href=['"](.*?)['"]/);
+        if (match && match[1]) {
+          let finalUrl = match[1];
+          const eventMatch = finalUrl.match(/\/event\/(\d+)/);
+          
+          setIsModalOpen(false); // Close the notification modal
+          
+          if (eventMatch && eventMatch[1]) {
+            navigate(`/dashboard/event/${eventMatch[1]}`);
+          } else {
+            if (!finalUrl.startsWith('http')) {
+              finalUrl = finalUrl.startsWith('/') ? `https://portal.ut.edu.vn${finalUrl}` : `https://portal.ut.edu.vn/${finalUrl}`;
+            }
+            import('@tauri-apps/plugin-opener').then(({ openUrl }) => {
+               openUrl(finalUrl).catch(console.error);
+            });
+          }
+        } else {
+          setSelectedNotification(body);
+        }
       } else {
         console.error("Failed to fetch notification details:", res);
         setSelectedNotification(null);
@@ -274,15 +294,7 @@ export default function NotificationPage() {
                   </div>
                 ) : selectedNotification ? (
                   <div className="text-sm text-text-primary prose prose-blue max-w-none break-words">
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]} 
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium" />
-                      }}
-                    >
-                      {selectedNotification.noiDung}
-                    </ReactMarkdown>
+                    <MarkdownNote content={selectedNotification.noiDung} />
                   </div>
                 ) : (
                   <div className="text-center text-text-tertiary py-8">

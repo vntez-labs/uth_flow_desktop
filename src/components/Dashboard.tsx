@@ -36,6 +36,7 @@ import NotificationPage from "./pages/NotificationPage";
 import SettingsPage from "./pages/SettingsPage";
 import AcademicStats from "./AcademicStats";
 import ScrollToTopButton from "./ScrollToTopButton";
+import EventPage from "./pages/EventPage";
 
 interface MenuItem {
   id: number;
@@ -289,6 +290,21 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                         className="!h-auto !py-3 border-b border-border-color hover:bg-bg-secondary rounded-none !whitespace-normal"
                         style={{ height: 'auto', minHeight: 'fit-content' }}
                         onPress={async () => {
+                          const match = note.noiDung?.match(/href=['"](.*?)['"]/);
+                          if (match && match[1]) {
+                            let finalUrl = match[1];
+                            const eventMatch = finalUrl.match(/\/event\/(\d+)/);
+                            if (eventMatch && eventMatch[1]) {
+                              navigate(`/dashboard/event/${eventMatch[1]}`);
+                              return;
+                            }
+                            if (!finalUrl.startsWith('http')) {
+                              finalUrl = finalUrl.startsWith('/') ? `https://portal.ut.edu.vn${finalUrl}` : `https://portal.ut.edu.vn/${finalUrl}`;
+                            }
+                            openUrl(finalUrl).catch(console.error);
+                            return;
+                          }
+
                           setSelectedHeaderNote(note);
                           setIsNoteModalOpen(true);
                           if (note.id) {
@@ -309,9 +325,7 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                         <div className="flex flex-col gap-1">
                           <span className="font-bold text-xs text-text-primary">{note.tieuDe}</span>
                           <div className="text-xs text-text-tertiary line-clamp-3 prose prose-sm prose-blue max-w-none pointer-events-none">
-                            <Suspense fallback={<div className="animate-pulse h-4 bg-gray-200 rounded w-full mt-2"></div>}>
-                              <MarkdownNote content={note.noiDung} />
-                            </Suspense>
+                            {note.noiDung ? note.noiDung.replace(/<[^>]+>/g, '') : ""}
                           </div>
                         </div>
                       </Dropdown.Item>
@@ -575,15 +589,9 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                           <h4 className="font-bold text-md mb-2">{popup.tieuDe}</h4>
                         )}
                         <div className="text-sm text-text-secondary prose prose-blue max-w-none break-words">
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]} 
-                            rehypePlugins={[rehypeRaw]}
-                            components={{
-                              a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium" />
-                            }}
-                          >
-                            {popup.noiDung}
-                          </ReactMarkdown>
+                          <Suspense fallback={<div className="animate-pulse h-4 bg-gray-200 rounded w-full mt-2"></div>}>
+                            <MarkdownNote content={popup.noiDung} />
+                          </Suspense>
                         </div>
                       </div>
                     ))}
@@ -1206,6 +1214,11 @@ export default function Dashboard({ onLogout, getGradient }: { onLogout: () => v
                 <Route path="course/:id" element={
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
                     <CourseDetail />
+                  </motion.div>
+                } />
+                <Route path="event/:id" element={
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+                    <EventPage />
                   </motion.div>
                 } />
 

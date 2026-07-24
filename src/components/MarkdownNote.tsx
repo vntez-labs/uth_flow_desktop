@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 export default function MarkdownNote({ content }: { content: string }) {
   return (
@@ -8,7 +9,23 @@ export default function MarkdownNote({ content }: { content: string }) {
       remarkPlugins={[remarkGfm]} 
       rehypePlugins={[rehypeRaw]}
       components={{
-        a: ({node, ...props}) => <a {...props} onClick={(e) => e.preventDefault()} className="text-blue-600 font-medium" />
+        a: ({node, ...props}) => (
+          <a 
+            {...props} 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (props.href) {
+                let finalUrl = props.href;
+                if (!finalUrl.startsWith('http')) {
+                  finalUrl = finalUrl.startsWith('/') ? `https://portal.ut.edu.vn${finalUrl}` : `https://portal.ut.edu.vn/${finalUrl}`;
+                }
+                openUrl(finalUrl).catch(console.error);
+              }
+            }}
+            className="text-blue-600 hover:underline font-medium cursor-pointer" 
+          />
+        )
       }}
     >
       {content}

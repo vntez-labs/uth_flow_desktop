@@ -627,3 +627,27 @@ pub fn create_auto_login_webview(
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn fetch_portal_post(
+    token: String,
+    endpoint: String,
+    body: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let client = get_client();
+    let res = client
+        .post(format!("{}/{}", BASE_URL, endpoint))
+        .header("Accept", "application/json")
+        .header("Authorization", format!("Bearer {}", token))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Lỗi gửi request: {}", e))?;
+
+    let json_data = res
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Lỗi đọc response: {}", e))?;
+
+    Ok(json_data)
+}
