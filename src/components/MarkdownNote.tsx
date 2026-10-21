@@ -23,7 +23,7 @@ export default function MarkdownNote({ content }: { content: string }) {
                 openUrl(finalUrl).catch(console.error);
               }
             }}
-            className="text-blue-600 hover:underline font-medium cursor-pointer" 
+            className="text-[#008689] dark:text-[#2DD4BF] hover:underline font-medium cursor-pointer" 
           />
         )
       }}

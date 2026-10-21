@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@heroui/react";
-import { ArrowLeft } from "lucide-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { getVersion } from "@tauri-apps/api/app";
+
+const MotionDiv = motion.div as any;
 
 export default function Changelog() {
   const [markdown, setMarkdown] = useState<string>("");
@@ -14,11 +16,9 @@ export default function Changelog() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Lấy version hiện tại để hiển thị
     getVersion().then(v => setVersion(v)).catch(console.error);
 
-    // Fetch markdown từ Github (thêm query param để tránh bị cache)
-    const CHANGELOG_URL = `https://raw.githubusercontent.com/hnamhocit/uth-sync/main/CHANGELOG.md?v=${Date.now()}`;
+    const CHANGELOG_URL = `https://raw.githubusercontent.com/vntez-labs/uth_flow_desktop/main/CHANGELOG.md?v=${Date.now()}`;
     
     fetch(CHANGELOG_URL)
       .then((res) => {
@@ -37,59 +37,59 @@ export default function Changelog() {
   }, []);
 
   return (
-    <motion.div 
+    <MotionDiv 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex h-screen w-full flex-col bg-bg-secondary text-text-primary overflow-hidden"
     >
-      <div className="flex items-center gap-4 p-6 border-b border-white/5 bg-bg-primary z-10 shadow-sm">
+      <div className="flex items-center gap-4 p-5 sm:p-6 border-b border-border-color bg-bg-primary z-10 shadow-xs">
         <Button 
           isIconOnly
           variant="ghost" 
+          className="rounded-xl cursor-pointer"
           onPress={() => navigate("/dashboard", { replace: true })}
         >
-          <ArrowLeft className="w-5 h-5 text-text-secondary" />
+          <IconArrowLeft className="w-5 h-5 text-text-secondary" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Có gì mới?</h1>
-          <p className="text-sm text-text-tertiary">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">Có gì mới?</h1>
+          <p className="text-xs sm:text-sm text-text-tertiary">
             {version ? `Phiên bản hiện tại: v${version}` : "Thông tin bản cập nhật mới nhất"}
           </p>
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
-        <motion.div 
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12 custom-scrollbar">
+        <MotionDiv 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="max-w-4xl mx-auto bg-bg-primary rounded-2xl p-8 shadow-xl shadow-black/5 border border-white/5"
+          className="max-w-4xl mx-auto bg-bg-primary rounded-3xl p-6 sm:p-10 shadow-sm border border-border-color"
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
-              <p className="text-text-secondary font-medium">Đang tải thông tin bản cập nhật...</p>
+              <div className="w-8 h-8 rounded-full border-2 border-[#008689] border-t-transparent animate-spin"></div>
+              <p className="text-text-tertiary font-medium text-sm">Đang tải thông tin bản cập nhật...</p>
             </div>
           ) : (
-            <article className="prose prose-invert prose-blue max-w-none prose-headings:font-bold prose-a:text-blue-400 prose-img:rounded-xl">
+            <article className="prose dark:prose-invert max-w-none prose-headings:font-bold prose-a:text-[#008689] dark:prose-a:text-[#2DD4BF] prose-img:rounded-2xl">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdown}
               </ReactMarkdown>
             </article>
           )}
-        </motion.div>
+        </MotionDiv>
       </div>
       
-      <div className="p-6 border-t border-white/5 bg-bg-primary flex justify-center z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="p-4 sm:p-6 border-t border-border-color bg-bg-primary flex justify-center z-10 shadow-xs">
         <Button 
-          variant="primary" 
           size="lg"
-          className="w-full max-w-md font-bold shadow-lg shadow-blue-500/20"
+          className="w-full max-w-md font-bold bg-[#008689] hover:bg-[#006f72] text-white shadow-md shadow-teal-500/20 rounded-xl cursor-pointer"
           onPress={() => navigate("/dashboard", { replace: true })}
         >
           Bắt đầu sử dụng
         </Button>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }

@@ -2,26 +2,38 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useUserStore } from "../stores/user.store";
-import { ArrowLeft } from "@gravity-ui/icons";
 import { 
-  FileText, Link, FileCheck, Video, HelpCircle, FileBox, Presentation, Users, Folder, LayoutGrid, CalendarCheck
-} from "lucide-react";
+  IconArrowLeft,
+  IconFileText, 
+  IconLink, 
+  IconFileCheck, 
+  IconVideo, 
+  IconHelpCircle, 
+  IconBox, 
+  IconPresentation, 
+  IconUsers, 
+  IconFolder, 
+  IconLayoutGrid, 
+  IconCalendarCheck,
+  IconCheck,
+  IconX
+} from "@tabler/icons-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 // Helper for mapping plugins to icons
 const getPluginIcon = (plugin: string) => {
   switch (plugin) {
-    case 'mod_resource': return <FileText className="text-blue-500 w-5 h-5" />;
-    case 'mod_url': return <Link className="text-green-500 w-5 h-5" />;
-    case 'mod_assign': return <FileCheck className="text-orange-500 w-5 h-5" />;
-    case 'mod_quiz': return <HelpCircle className="text-purple-500 w-5 h-5" />;
-    case 'mod_folder': return <Folder className="text-yellow-500 w-5 h-5" />;
-    case 'mod_label': return <FileBox className="text-gray-500 w-5 h-5" />;
-    case 'mod_googlemeet': return <Video className="text-red-500 w-5 h-5" />;
-    case 'mod_lesson': return <Presentation className="text-indigo-500 w-5 h-5" />;
-    case 'mod_forum': return <Users className="text-teal-500 w-5 h-5" />;
-    case 'mod_attendance': return <CalendarCheck className="text-pink-500 w-5 h-5" />;
-    default: return <FileText className="text-gray-400 w-5 h-5" />;
+    case 'mod_resource': return <IconFileText className="text-[#008689] dark:text-[#2DD4BF] w-5 h-5" />;
+    case 'mod_url': return <IconLink className="text-emerald-500 w-5 h-5" />;
+    case 'mod_assign': return <IconFileCheck className="text-amber-500 w-5 h-5" />;
+    case 'mod_quiz': return <IconHelpCircle className="text-teal-600 w-5 h-5" />;
+    case 'mod_folder': return <IconFolder className="text-yellow-500 w-5 h-5" />;
+    case 'mod_label': return <IconBox className="text-gray-500 w-5 h-5" />;
+    case 'mod_googlemeet': return <IconVideo className="text-red-500 w-5 h-5" />;
+    case 'mod_lesson': return <IconPresentation className="text-[#008689] w-5 h-5" />;
+    case 'mod_forum': return <IconUsers className="text-teal-500 w-5 h-5" />;
+    case 'mod_attendance': return <IconCalendarCheck className="text-pink-500 w-5 h-5" />;
+    default: return <IconFileText className="text-gray-400 w-5 h-5" />;
   }
 };
 
@@ -159,17 +171,17 @@ export default function CourseDetail() {
           onClick={() => navigate(-1)}
           className="p-2 rounded-full hover:bg-bg-secondary transition-colors"
         >
-          <ArrowLeft width={24} height={24} className="text-text-primary" />
+          <IconArrowLeft size={24} className="text-text-primary" />
         </button>
         <h1 className="text-xl font-bold text-text-primary flex items-center gap-2">
-          <LayoutGrid className="w-5 h-5 text-blue-500" /> Chi tiết khóa học
+          <IconLayoutGrid className="w-5 h-5 text-[#008689] dark:text-[#2DD4BF]" /> Chi tiết khóa học
         </h1>
       </div>
       
       <div className="flex-1 p-4 md:p-8 w-full max-w-5xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#008689]"></div>
             <p className="text-sm text-text-tertiary font-medium">Đang đồng bộ dữ liệu khóa học...</p>
           </div>
         ) : error ? (
@@ -178,7 +190,7 @@ export default function CourseDetail() {
           </div>
         ) : !courseData?.section ? (
            <div className="text-text-secondary text-center p-8 bg-bg-secondary rounded-2xl border border-border-color border-dashed">
-             <LayoutGrid className="w-8 h-8 text-text-tertiary mx-auto mb-2 opacity-50" />
+             <IconLayoutGrid className="w-8 h-8 text-text-tertiary mx-auto mb-2 opacity-50" />
              <p>Không có dữ liệu khóa học.</p>
            </div>
         ) : (
@@ -247,14 +259,14 @@ export default function CourseDetail() {
                           <div 
                             key={cmId}
                             onClick={() => handleOpenModule(cmInfo)}
-                            className="group flex items-center gap-4 p-4 rounded-2xl bg-bg-primary border border-border-color shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all"
+                            className="group flex items-center gap-4 p-4 rounded-2xl bg-bg-primary border border-border-color shadow-xs hover:shadow-sm hover:border-teal-500/40 cursor-pointer transition-all"
                           >
                             <div className="flex-shrink-0 bg-bg-primary p-3 rounded-xl shadow-inner group-hover:scale-105 transition-transform duration-300">
                               {getPluginIcon(cmInfo.plugin)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p 
-                                className="text-base font-semibold text-text-primary group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" 
+                                className="text-base font-semibold text-text-primary group-hover:text-[#008689] dark:group-hover:text-[#2DD4BF] transition-colors" 
                                 dangerouslySetInnerHTML={{ __html: stripColors(cmInfo.name) }}
                               />
                               <p className="text-xs text-text-tertiary mt-1 font-medium tracking-wide uppercase">
@@ -263,12 +275,12 @@ export default function CourseDetail() {
                             </div>
                             <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
                                {openingModule === cmId ? (
-                                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+                                    <div className="w-4 h-4 border-2 border-[#008689] border-t-transparent rounded-full animate-spin"></div>
                                   </div>
                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                    <ArrowLeft className="w-4 h-4 text-blue-500 rotate-135 transform" style={{ transform: "rotate(135deg)" }} />
+                                  <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+                                    <IconArrowLeft className="w-4 h-4 text-[#008689] dark:text-[#2DD4BF] rotate-135 transform" style={{ transform: "rotate(135deg)" }} />
                                   </div>
                                )}
                             </div>
@@ -285,15 +297,15 @@ export default function CourseDetail() {
                               >
                                 {updatingActivity === cmInfo.id ? (
                                   <div className="w-6 h-6 rounded-full flex items-center justify-center">
-                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-4 h-4 border-2 border-[#008689] border-t-transparent rounded-full animate-spin"></div>
                                   </div>
                                 ) : (cmInfo.completionstate === 1 || cmInfo.completionstate === 2 || cmInfo.iscomplete) ? (
                                   <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-green-500/30 bg-green-500/20 text-green-500' : 'bg-green-500/20 text-green-500'}`} title={!cmInfo.isautomatic ? "Đánh dấu chưa hoàn thành" : "Đã hoàn thành"}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <IconCheck size={14} stroke={2.5} />
                                   </div>
                                 ) : (cmInfo.completionstate === 3 || cmInfo.isfail) ? (
                                   <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-red-500/30 bg-red-500/20 text-red-500' : 'bg-red-500/20 text-red-500'}`} title={!cmInfo.isautomatic ? "Đánh dấu hoàn thành" : "Không đạt"}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    <IconX size={14} stroke={2.5} />
                                   </div>
                                 ) : (
                                   <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${!cmInfo.isautomatic ? 'cursor-pointer hover:bg-red-500/10 border-2 border-dashed border-red-400 text-red-400' : 'border-2 border-dashed border-gray-400/50 text-gray-400'}`} title={!cmInfo.isautomatic ? "Đánh dấu hoàn thành" : "Chưa hoàn thành"}>
@@ -306,7 +318,7 @@ export default function CourseDetail() {
                       })
                     ) : (
                       <div className="p-4 bg-bg-secondary/50 rounded-2xl border border-dashed border-border-color flex items-center gap-2 text-text-tertiary text-sm">
-                        <Folder className="w-4 h-4" />
+                        <IconFolder className="w-4 h-4" />
                         Chưa có tài liệu hoặc hoạt động nào trong phần này.
                       </div>
                     )}

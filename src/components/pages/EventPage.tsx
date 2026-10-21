@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@heroui/react';
 import { useUserStore } from '../../stores/user.store';
-import { Calendar, Clock, MapPin, Info, ArrowLeft, CheckCircle2, Ticket, Sparkles } from 'lucide-react';
+import { IconCalendar, IconClock, IconMapPin, IconInfoCircle, IconArrowLeft, IconCircleCheck, IconTicket, IconSparkles } from '@tabler/icons-react';
 import MarkdownNote from '../MarkdownNote';
 
 interface EventDetail {
@@ -150,7 +150,7 @@ export default function EventPage() {
   if (!eventData) {
     return (
       <div className="max-w-6xl mx-auto flex flex-col items-center justify-center py-20 text-text-tertiary">
-        <Ticket width={64} height={64} className="mb-4 opacity-30" />
+        <IconTicket size={64} className="mb-4 opacity-30" />
         <h2 className="text-xl font-bold">Không tìm thấy sự kiện</h2>
         <Button className="mt-4" onPress={() => navigate(-1)}>Quay lại</Button>
       </div>
@@ -161,10 +161,10 @@ export default function EventPage() {
     <div className="max-w-7xl mx-auto pb-10">
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-text-tertiary hover:text-blue-600 font-medium transition-colors mb-6 group"
+        className="flex items-center gap-2 text-text-tertiary hover:text-[#008689] dark:hover:text-[#2DD4BF] font-medium transition-colors mb-6 group cursor-pointer"
       >
-        <div className="w-8 h-8 rounded-full bg-bg-primary border border-border-color flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-200 transition-all">
-          <ArrowLeft width={16} height={16} />
+        <div className="w-8 h-8 rounded-full bg-bg-primary border border-border-color flex items-center justify-center group-hover:bg-teal-500/10 group-hover:border-teal-500/30 transition-all">
+          <IconArrowLeft size={16} />
         </div>
         <span>Quay lại</span>
       </button>
@@ -180,8 +180,8 @@ export default function EventPage() {
                 className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
               />
             ) : (
-              <div className="w-full aspect-[4/3] flex items-center justify-center bg-blue-50 text-blue-200">
-                <Ticket width={80} height={80} />
+              <div className="w-full aspect-[4/3] flex items-center justify-center bg-teal-500/10 text-[#008689] dark:text-[#2DD4BF]">
+                <IconTicket size={80} />
               </div>
             )}
             
@@ -190,7 +190,7 @@ export default function EventPage() {
 
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-3xl p-5 shadow-sm">
             <div className="flex items-center justify-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-4">
-              <Sparkles width={18} height={18} className="animate-pulse" />
+              <IconSparkles size={18} className="animate-pulse" />
               <span className="tracking-wide uppercase text-sm">Đang mở đăng ký</span>
             </div>
             
@@ -224,7 +224,7 @@ export default function EventPage() {
 
             <div className="flex flex-col gap-3 mt-5 pt-5 border-t border-emerald-200/50 dark:border-emerald-800/30">
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
-                <Clock width={16} height={16} />
+                <IconClock size={16} />
                 <span className="text-xs font-bold uppercase tracking-wider">Thời gian đăng ký</span>
               </div>
               <div className="flex flex-col gap-1.5 text-sm font-semibold text-emerald-900/80 dark:text-emerald-100/80">
@@ -245,12 +245,12 @@ export default function EventPage() {
         <div className="flex-1 flex flex-col">
           <div className="bg-bg-primary border border-border-color rounded-3xl p-6 sm:p-10 shadow-sm flex flex-col">
             <span className="text-xs font-bold tracking-widest text-text-tertiary uppercase mb-3">Sự kiện nổi bật</span>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black leading-tight mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black leading-tight mb-8 text-text-primary">
               {eventData.name}
             </h1>
             
-            <div className="prose prose-blue max-w-none mb-10 bg-white dark:bg-slate-950/80 p-6 sm:p-8 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-md">
-              <div className="text-[15px] sm:text-base leading-loose text-slate-900 dark:text-slate-100 space-y-4">
+            <div className="prose max-w-none mb-10 bg-bg-secondary p-6 sm:p-8 rounded-3xl border border-border-color shadow-xs">
+              <div className="text-[15px] sm:text-base leading-loose text-text-secondary space-y-4">
                 <MarkdownNote content={eventData.description} />
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function EventPage() {
               <div className="mb-10">
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-bg-secondary border border-border-color shadow-sm w-full md:w-1/2">
                   <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                    <MapPin width={20} height={20} />
+                    <IconMapPin size={20} />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Địa điểm</span>
@@ -273,7 +273,7 @@ export default function EventPage() {
             {dates.length > 0 && (
               <div className="flex flex-col gap-5 mb-10">
                 <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  <Calendar width={20} height={20} className="text-blue-600" />
+                  <IconCalendar size={20} className="text-[#008689] dark:text-[#2DD4BF]" />
                   Chọn ngày tham gia
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -293,7 +293,7 @@ export default function EventPage() {
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
                         selectedDate === date.id ? 'bg-emerald-500 text-white' : 'border-2 border-border-strong text-transparent'
                       }`}>
-                        <CheckCircle2 width={14} height={14} />
+                        <IconCircleCheck size={14} />
                       </div>
                     </button>
                   ))}
@@ -307,7 +307,7 @@ export default function EventPage() {
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                   : 'bg-red-50 text-red-700 border border-red-200'
               }`}>
-                {registerResult.success ? <CheckCircle2 width={20} height={20} /> : <Info width={20} height={20} />}
+                {registerResult.success ? <IconCircleCheck size={20} /> : <IconInfoCircle size={20} />}
                 <span>{registerResult.message}</span>
               </div>
             )}
@@ -322,7 +322,7 @@ export default function EventPage() {
                   : 'bg-bg-tertiary text-text-tertiary shadow-none'
               }`}
             >
-              {!isRegistering && <Ticket width={22} height={22} className="mr-2" />}
+              {!isRegistering && <IconTicket size={22} className="mr-2" />}
               {isRegistering ? "ĐANG ĐĂNG KÝ..." : "ĐĂNG KÝ NGAY"}
             </Button>
           </div>

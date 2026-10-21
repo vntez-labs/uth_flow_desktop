@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Bell, ChevronLeft, ChevronRight, FileText, Filter } from 'lucide-react';
+import { IconBell, IconChevronLeft, IconChevronRight, IconFileText, IconFilter } from '@tabler/icons-react';
 import { Modal, Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import MarkdownNote from '../MarkdownNote';
@@ -147,13 +147,13 @@ export default function NotificationPage() {
         <div className="w-full md:w-72 shrink-0 flex flex-col gap-4">
           <div className="bg-bg-primary rounded-3xl p-6 border border-border-color shadow-sm">
             <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
-              <Filter width={20} height={20} className="text-blue-600" />
+              <IconFilter size={20} className="text-[#008689] dark:text-[#2DD4BF]" />
               Danh mục
             </h3>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <button 
                 onClick={() => handleCategorySelect(null)}
-                className={`text-left px-4 py-3 rounded-xl transition-all font-medium text-sm ${selectedCategory === null ? 'bg-blue-600 text-white shadow-md' : 'text-text-secondary hover:bg-bg-secondary'}`}
+                className={`text-left px-4 py-3 rounded-2xl transition-all font-semibold text-sm cursor-pointer ${selectedCategory === null ? 'bg-[#008689] text-white shadow-xs' : 'text-text-secondary hover:bg-bg-secondary'}`}
               >
                 Tất cả thông báo
               </button>
@@ -161,7 +161,7 @@ export default function NotificationPage() {
                 <button 
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat.id)}
-                  className={`text-left px-4 py-3 rounded-xl transition-all font-medium text-sm ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md' : 'text-text-secondary hover:bg-bg-secondary'}`}
+                  className={`text-left px-4 py-3 rounded-2xl transition-all font-semibold text-sm cursor-pointer ${selectedCategory === cat.id ? 'bg-[#008689] text-white shadow-xs' : 'text-text-secondary hover:bg-bg-secondary'}`}
                 >
                   {cat.tenDanhMuc}
                 </button>
@@ -173,10 +173,10 @@ export default function NotificationPage() {
         {/* Main Content - Notifications List */}
         <div className="flex-1 flex flex-col gap-4">
           <div className="bg-bg-primary rounded-3xl p-6 md:p-8 border border-border-color shadow-sm min-h-[500px] flex flex-col">
-            <div className="flex flex-col gap-4 border-b border-border-strong pb-4 mb-4">
+            <div className="flex flex-col gap-4 border-b border-border-color pb-4 mb-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-text-primary flex items-center gap-3">
-                  <Bell width={24} height={24} className="text-blue-600" />
+                  <IconBell size={24} className="text-[#008689] dark:text-[#2DD4BF]" />
                   Thông báo
                 </h2>
                 <span className="text-text-tertiary text-sm font-medium">Tổng cộng {totalElements}</span>
@@ -191,7 +191,7 @@ export default function NotificationPage() {
                       setPageSize(Number(e.target.value));
                       setPage(0);
                     }}
-                    className="bg-bg-secondary border border-border-color text-text-primary text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-1.5 outline-none cursor-pointer"
+                    className="bg-bg-secondary border border-border-strong text-text-primary text-sm rounded-xl focus:ring-2 focus:ring-[#008689]/20 focus:border-[#008689] block px-3 py-1.5 outline-none cursor-pointer"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -206,9 +206,9 @@ export default function NotificationPage() {
                     <button 
                       disabled={page === 0}
                       onClick={() => setPage(p => p - 1)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-border-color bg-bg-primary text-text-secondary hover:bg-bg-secondary disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                      className="w-8 h-8 rounded-xl flex items-center justify-center border border-border-color bg-bg-primary text-text-secondary hover:bg-bg-secondary hover:text-[#008689] dark:hover:text-[#2DD4BF] disabled:opacity-50 disabled:pointer-events-none transition-colors cursor-pointer"
                     >
-                      <ChevronLeft width={16} height={16} />
+                      <IconChevronLeft size={16} />
                     </button>
                     <span className="px-2 text-sm font-bold text-text-primary">
                       {page + 1} / {totalPages}
@@ -216,16 +216,16 @@ export default function NotificationPage() {
                     <button 
                       disabled={page >= totalPages - 1}
                       onClick={() => setPage(p => p + 1)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-border-color bg-bg-primary text-text-secondary hover:bg-bg-secondary disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                      className="w-8 h-8 rounded-xl flex items-center justify-center border border-border-color bg-bg-primary text-text-secondary hover:bg-bg-secondary hover:text-[#008689] dark:hover:text-[#2DD4BF] disabled:opacity-50 disabled:pointer-events-none transition-colors cursor-pointer"
                     >
-                      <ChevronRight width={16} height={16} />
+                      <IconChevronRight size={16} />
                     </button>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 flex-1">
+            <div className="flex flex-col gap-3 flex-1">
               {loading ? (
                 Array(5).fill(0).map((_, i) => (
                   <div key={i} className="flex gap-4 p-4 rounded-2xl border border-border-color animate-pulse bg-bg-secondary/50">
@@ -247,13 +247,13 @@ export default function NotificationPage() {
                     }}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex gap-4 p-5 rounded-2xl border border-border-color bg-bg-primary hover:bg-bg-secondary hover:border-blue-200 transition-all group"
+                    className="flex gap-4 p-5 rounded-2xl border border-border-color bg-bg-primary hover:bg-bg-secondary hover:border-teal-500/40 transition-all group cursor-pointer"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm">
-                      <FileText width={24} height={24} />
+                    <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-[#008689] dark:text-[#2DD4BF] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                      <IconFileText size={22} />
                     </div>
                     <div className="flex flex-col flex-1 justify-center">
-                      <h4 className="text-base font-bold text-text-primary mb-1 group-hover:text-blue-600 transition-colors line-clamp-2 leading-relaxed">
+                      <h4 className="text-base font-bold text-text-primary mb-1 group-hover:text-[#008689] dark:group-hover:text-[#2DD4BF] transition-colors line-clamp-2 leading-relaxed">
                         {notif.tieuDe}
                       </h4>
                       <span className="text-sm text-text-tertiary font-medium">
@@ -264,7 +264,7 @@ export default function NotificationPage() {
                 ))
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-text-tertiary">
-                  <Bell width={48} height={48} className="mb-4 opacity-20" />
+                  <IconBell size={48} className="mb-4 opacity-20" />
                   <p>Không có thông báo nào</p>
                 </div>
               )}
@@ -308,7 +308,7 @@ export default function NotificationPage() {
                     Mở trong Portal
                   </Button>
                 )}
-                <Button className="bg-blue-600 text-white" onPress={() => setIsModalOpen(false)}>
+                <Button className="bg-[#008689] hover:bg-[#006f72] text-white font-semibold rounded-xl" onPress={() => setIsModalOpen(false)}>
                   Đóng
                 </Button>
               </Modal.Footer>
